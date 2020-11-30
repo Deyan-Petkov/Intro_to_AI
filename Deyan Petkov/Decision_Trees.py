@@ -58,7 +58,7 @@ print(leMonths_mapping)
 
 #show all visitor types
 df.VisitorType.unique()
-#remove Other from VisitorType column as it is insignificant number of entries
+#remove Other from VisitorType column as it is insignificant number of entries(85)
 #and we mainly have two types of visitors - new and returning
 df = df[df.VisitorType != 'Other']
 #create  LabelEncoder() instance for VisitorType
