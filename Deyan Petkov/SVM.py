@@ -108,7 +108,6 @@ def conf_matrix (y_test, y_pred, kernel, gamma, C):
     
 #Normalized version of conf_matrix function
 def normalized_conf_matrix (y_test, y_pred, kernel, gamma, C):
-    cm = confusion_matrix(y_test, y_pred)
     fn, ax = plt.subplots(figsize=(5,5))
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     sns.heatmap(cm_normalized, annot=True, linewidth=1, linecolor='black', fmt='g', ax=ax, cmap="BuPu")
@@ -421,7 +420,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random
 #train and test using the preset values for C in c_values and all the kernels
 SVRfit_pred(stand_X_train, y_train, stand_X_test, c_values, 
             "SVR results only noncategorical data standardized")
-    
+        
 
 
 
