@@ -87,11 +87,7 @@ print (leVisitor_mapping)
 
 #Dropping OS, Traffic type and Browser from the dataset as it is unuseful.
 #This would help with the
-df.drop(['OperatingSystems','Browser','TrafficType'], axis = 1)
-
-
-
-
+#df.drop(['OperatingSystems','Browser','TrafficType'], axis = 1)
 
 
 
@@ -100,43 +96,28 @@ df.head(6)
 
 
 
-#------------------------------------------
-
-#Here, we are going to Apply an algorithm to the data to predict the revenue
 
 #------------------------------------------
 
+#Here, we are going to Apply a KNN and Naive Bayes algorithm to the data to predict the revenue
 
-
-#Using Principle Component Analysis to reduce the dimentionality of the dataset
-from sklearn.decomposition import PCA
-
-pca = PCA(n_components=2)
-pca.fit(X)
-X_pca = pca.transform(X)
-
+#------------------------------------------
 
 
 #First split the data into Train and test.
 
+# Comparing revenue with the other categories of data.
 y = df['Revenue']
 X = df.drop(['Revenue'],axis=1)
 
+# Split into train and test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
-# Normalisation of data if necessary, However the data already 
-# looks to be similiar in scale. I tested the scaling and saw that Naive Bayes went
-# down in accuracy by 6% And increases KNN byt 4%
-
-scaler = StandardScaler()
-scaler.fit(X_train)
-X_train = scaler.transform(X_train)
-X_test = scaler.transform(X_test)
 
 
 # Apply the KNN algorithm
 
-kn=KNeighborsClassifier(n_neighbors = 13 , metric = 'minkowski')
+kn=KNeighborsClassifier(n_neighbors = 13 , metric = 'euclidean')
 kn.fit(X_train,y_train)
 predict_y2=kn.predict(X_test) # Prediction
 predict_y2
@@ -144,7 +125,6 @@ predict_y2
 #Checking Accuracy score
 KNN_accuracy=accuracy_score(y_test,predict_y2)*100
 KNN_accuracy
-
 
 
 #Accurate values
@@ -155,6 +135,77 @@ print(classification_report(y_test,predict_y2))
 
 
 #Determining the best K value using a loop
+
+error_rate = []
+
+# This for loop calculates the best number of neighbors for the KNN algorithm. 
+for i in range(1,25):
+    
+    knn=KNeighborsClassifier(n_neighbors = i)
+    knn.fit(X_train,y_train)
+    predict_y2=knn.predict(X_test)#Output Prediction
+    error_rate.append(np.mean(predict_y2 != y_test))
+
+# Plotting the error rate against the k value to find the best k 
+plt.figure(figsize=(10,6))
+plt.plot(range(1,25), error_rate)
+plt.title('Error rate vs k.value')
+plt.xlabel('K')
+plt.ylabel('Error Rate')
+
+# Naive Bayes Algorithm
+
+
+from sklearn.naive_bayes import GaussianNB
+gauss= GaussianNB()
+gauss.fit(X_train,y_train) #Fitting to data
+
+predict_y= gauss.predict(X_test) 
+predict_y
+confusion_matrix(y_test,predict_y)
+
+#Checking Accuracy
+GaussNB_accuracy = accuracy_score(y_test,predict_y)*100
+GaussNB_accuracy
+print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
+
+
+
+
+
+
+
+
+
+#Applying Standardisation and/or Mix max scaling through pca
+
+# Using standard scaler to scale the 
+from sklearn.preprocessing import StandardScaler
+std_sclr = StandardScaler()
+x_train1 = std_sclr.fit_transform(X_train)
+x_test1 = std_sclr.transform(X_test)
+
+
+# For knn we will use PCA to reduce the dimensionality reduction to see if we get a
+# better result from our algorithm.
+from sklearn.decomposition import PCA
+pca = PCA(n_components=10)
+x_train_P = pca.fit_transform(x_train1)
+x_test_P = pca.transform(x_test1)
+
+# Using the KNN algorithm on the scaled and pca data
+
+KNN_PCA=KNeighborsClassifier(n_neighbors = 15 , metric = 'euclidean')
+KNN_PCA.fit(x_train_P,y_train)
+predict_y1_P=KNN_PCA.predict(x_test_P) # Prediction
+predict_y1_P
+
+#Checking Accuracy score
+KNN_accuracy=accuracy_score(y_test,predict_y1_P)*100
+KNN_accuracy
+
+
+# Finding the best Neighbor for the algorithm. Cited this code from Amey Band
 
 error_rate = []
 
@@ -172,20 +223,20 @@ plt.title('Error rate vs k.value')
 plt.xlabel('K')
 plt.ylabel('Error Rate')
 
-# Naive Bayes Algorithm
+# Looking at the plot, we can see that 15 would be the best neighbour as the error rate
+# is stable and starts to flatten. 
 
-#Using the Naive Bayes algoritm to see if there is 
+# Using Naive Bayes on the scaled data with PCA
 from sklearn.naive_bayes import GaussianNB
-gauss= GaussianNB()
-gauss.fit(X_train,y_train)
+gauss_PCA= GaussianNB()
+gauss_PCA.fit(x_train_P,y_train) #Fitting to data
 
-predict_y12= gauss.predict(X_test) 
-predict_y12
-confusion_matrix(y_test,predict_y12)
+predict_y2_P= gauss_PCA.predict(x_test_P) 
+predict_y2_P
+confusion_matrix(y_test,predict_y)
 
 #Checking Accuracy
-GaussNB_accuracy = accuracy_score(y_test,predict_y12)*100
+GaussNB_accuracy = accuracy_score(y_test,predict_y2_P)*100
 GaussNB_accuracy
 print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
-
 
