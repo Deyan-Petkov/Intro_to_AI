@@ -31,6 +31,9 @@ df.head()
 #add -1 as a missing value type
 df = pd.read_csv(ds, na_values=['NaN','-1'])
 
+# Columns and their respective data types
+print(df.dtypes)  
+  
 #show statistical summary
 from pandas import set_option
 set_option('display.width',100)
@@ -82,106 +85,127 @@ leVisitor_mapping = dict(zip(leVisitor.classes_ ,
                                   leVisitor.transform(leVisitor.classes_)))
 print (leVisitor_mapping)
 
+#Dropping OS, Traffic type and Browser from the dataset as it is unuseful.
+#This would help with the
+#df.drop(['OperatingSystems','Browser','TrafficType'], axis = 1)
+
+
+
 #The dataset state after all the manipulations
 df.head(6)
 
-#------------------------------------------
-
-#Here, we are going to visualise the data. Exploratory data Analysis
-
-#------------------------------------------
-
-# A plot to show Revenue
-sns.countplot(df['Revenue'])
-
-# Plot to show Regions
-sns.countplot(df['Region'])
-
-# Plot showing VisitorType (Other is omitted due to being insignificant)
-sns.countplot(df['VisitorType'])
-
-# A plot showing bounce rates and Revenue
-sns.countplot(df['BounceRates'], hue ='Revenue')
-
-#A plot showing Visitor types and Revenue 
-sns.countplot(x = 'VisitorType', hue = 'Revenue',data=df)
-
-
-# Scatter plot that shows the correlation between Bounce rates 
-# and Product related duration with a hue of Revenue.
-sns.set(rc={'figure.figsize':(10,10)})
-sns.scatterplot(x='ProductRelated_Duration',y='BounceRates', data=df, hue='Revenue',palette='prism')
-plt.show()
-
-# Scatter plot showing Page values with bounce rates and a hue of Revenue
-sns.scatterplot(x='PageValues',y='BounceRates', data=df, hue='Revenue', palette='prism')
-plt.show()
-
-
-#Heatmap showing the correlation between different categories 
-# (This was taken from a notebook)
-
-df_interval = df[['Administrative', 'Administrative_Duration', 'Informational',
-       'Informational_Duration', 'ProductRelated', 'ProductRelated_Duration',
-       'BounceRates', 'ExitRates', 'PageValues', 'Revenue']]
-correlation_matrix = df_interval.corr()
-fig, ax = plt.subplots(figsize = (10,10))
-sns.heatmap(correlation_matrix, annot =True, annot_kws = {'size': 15})
-plt.xticks(rotation = 30)
-
-#We can see from the heatmap above that  
-#Bounce rates and exit rates are highly correlated. So lets show this
-
-sns.jointplot(data = df, x='ExitRates', y='BounceRates')
-plt.show()
-
-
-
 
 
 
 #------------------------------------------
 
-#Here, we are going to Apply an algorithm to the data to predict the revenue
+#Here, we are going to Apply a KNN and Naive Bayes algorithm to the data to predict the revenue
 
 #------------------------------------------
-
-
 
 
 #First split the data into Train and test.
 
+# Comparing revenue with the other categories of data.
 y = df['Revenue']
 X = df.drop(['Revenue'],axis=1)
 
+# Split into train and test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
-
-scaler = StandardScaler()
-scaler.fit(X_train)
-X_train = scaler.transform(X_train)
-X_test = scaler.transform(X_test)
 
 
 # Apply the KNN algorithm
 
-kn=KNeighborsClassifier(n_neighbors = 13) #, metric = 'minkowski')
+kn=KNeighborsClassifier(n_neighbors = 13 , metric = 'euclidean')
 kn.fit(X_train,y_train)
-predict_y2=kn.predict(X_test)#Output Prediction
+predict_y2=kn.predict(X_test) # Prediction
 predict_y2
 
 #Checking Accuracy score
-KNN_accuracy=accuracy_score(y_test,predic_y2)*100
+KNN_accuracy=accuracy_score(y_test,predict_y2)*100
 KNN_accuracy
 
+
 #Accurate values
-confusion_matrix(y_test,predic_y2)
+confusion_matrix(y_test,predict_y2)
 
 #Classification report
-print(classification_report(y_test,predic_y2))
+print(classification_report(y_test,predict_y2))
 
 
 #Determining the best K value using a loop
+
+error_rate = []
+
+# This for loop calculates the best number of neighbors for the KNN algorithm. 
+for i in range(1,25):
+    
+    knn=KNeighborsClassifier(n_neighbors = i)
+    knn.fit(X_train,y_train)
+    predict_y2=knn.predict(X_test)#Output Prediction
+    error_rate.append(np.mean(predict_y2 != y_test))
+
+# Plotting the error rate against the k value to find the best k 
+plt.figure(figsize=(10,6))
+plt.plot(range(1,25), error_rate)
+plt.title('Error rate vs k.value')
+plt.xlabel('K')
+plt.ylabel('Error Rate')
+
+# Naive Bayes Algorithm
+
+
+from sklearn.naive_bayes import GaussianNB
+gauss= GaussianNB()
+gauss.fit(X_train,y_train) #Fitting to data
+
+predict_y= gauss.predict(X_test) 
+predict_y
+confusion_matrix(y_test,predict_y)
+
+#Checking Accuracy
+GaussNB_accuracy = accuracy_score(y_test,predict_y)*100
+GaussNB_accuracy
+print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
+
+
+
+
+
+
+
+
+
+#Applying Standardisation and/or Mix max scaling through pca
+
+# Using standard scaler to scale the 
+from sklearn.preprocessing import StandardScaler
+std_sclr = StandardScaler()
+x_train1 = std_sclr.fit_transform(X_train)
+x_test1 = std_sclr.transform(X_test)
+
+
+# For knn we will use PCA to reduce the dimensionality reduction to see if we get a
+# better result from our algorithm.
+from sklearn.decomposition import PCA
+pca = PCA(n_components=10)
+x_train_P = pca.fit_transform(x_train1)
+x_test_P = pca.transform(x_test1)
+
+# Using the KNN algorithm on the scaled and pca data
+
+KNN_PCA=KNeighborsClassifier(n_neighbors = 15 , metric = 'euclidean')
+KNN_PCA.fit(x_train_P,y_train)
+predict_y1_P=KNN_PCA.predict(x_test_P) # Prediction
+predict_y1_P
+
+#Checking Accuracy score
+KNN_accuracy=accuracy_score(y_test,predict_y1_P)*100
+KNN_accuracy
+
+
+# Finding the best Neighbor for the algorithm. Cited this code from Amey Band
 
 error_rate = []
 
@@ -199,5 +223,20 @@ plt.title('Error rate vs k.value')
 plt.xlabel('K')
 plt.ylabel('Error Rate')
 
+# Looking at the plot, we can see that 15 would be the best neighbour as the error rate
+# is stable and starts to flatten. 
 
+# Using Naive Bayes on the scaled data with PCA
+from sklearn.naive_bayes import GaussianNB
+gauss_PCA= GaussianNB()
+gauss_PCA.fit(x_train_P,y_train) #Fitting to data
+
+predict_y2_P= gauss_PCA.predict(x_test_P) 
+predict_y2_P
+confusion_matrix(y_test,predict_y)
+
+#Checking Accuracy
+GaussNB_accuracy = accuracy_score(y_test,predict_y2_P)*100
+GaussNB_accuracy
+print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
 
