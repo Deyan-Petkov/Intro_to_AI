@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from sklearn.metrics import average_precision_score
+from sklearn.metrics import classification_report
 
 path = "../"
 
@@ -25,7 +27,7 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 #dataset description
 from pandas import set_option
 set_option('display.width',100)
-set_option('precision',2)
+set_option('precision',3)
 df.describe()
 df.describe(include = 'all')
 
@@ -40,13 +42,18 @@ df['Revenue'].value_counts()
 df.Weekend = df.Weekend.replace({True: 1, False: 0})
 df.Revenue = df.Revenue.replace({True: 1, False: 0})
 
+
+df.shape
+#(12330, 18)
+
 #show null values count
 print("count missing/NA values")
 df.isnull().sum()
 
 #Remove the null values and update the dataset according to the changes
 df.dropna(inplace=True)
-
+df.shape
+#(12283, 18)
 
 #convert categorical data to numerical
 from sklearn.preprocessing import LabelEncoder
@@ -63,6 +70,13 @@ leMonths_mapping = dict(zip(leMonths.classes_ ,
 
 print(leMonths_mapping)
 
+#what data contains VisitorType column
+df['VisitorType'].value_counts()
+'''
+Returning_Visitor    10504
+New_Visitor           1694
+Other                   85
+'''
 #remove Other from VisitorType column as it is insignificant number of entries(85)
 #and we mainly have two types of visitors - new and returning
 df = df[df.VisitorType != 'Other']
@@ -108,6 +122,7 @@ def conf_matrix (y_test, y_pred, kernel, gamma, C):
     
 #Normalized version of conf_matrix function
 def normalized_conf_matrix (y_test, y_pred, kernel, gamma, C):
+    cm = confusion_matrix(y_test, y_pred)
     fn, ax = plt.subplots(figsize=(5,5))
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     sns.heatmap(cm_normalized, annot=True, linewidth=1, linecolor='black', fmt='g', ax=ax, cmap="BuPu")
@@ -125,45 +140,21 @@ def report (y_test, y_pred):
     print(classification_report(y_test,y_pred))
     aps = average_precision_score(y_test, y_pred)
     print('Precision and Recall : {0:0.2f}'.format(aps))
-    print('Accuracy: %.4f' % accuracy_score(y_test, y_pred))
 
 
 
-
-
-from sklearn.metrics import average_precision_score
-from sklearn.metrics import classification_report
-
-#Creating plots with the mean accuracy of the linear kernel 
-#and C ranging from 1 to 10 
-results = []
-for i in (np.arange(1,10,2)):
-  svc = SVC(kernel = 'linear', C = i)
-  svc.fit(X_train,y_train) 
-  results.append(svc.score(X_test,y_test)) 
-  
-plt.plot(np.arange(1,10,2),results) 
-plt.show()
-
-#Same as above just this time we plot
-#the mean accuracy from C = 0.1 ... 1.0
-results = []
-for i in (np.arange(0.1, 1, 0.2)):
-  svc = SVC(kernel = 'linear', C = i)
-  svc.fit(X_train,y_train) 
-  results.append(svc.score(X_test,y_test)) 
-  
-plt.plot(np.arange(0.1, 1, 0.2),results) 
-plt.show()
 
 #Fitting the linear kernel with different values for C and displaying 
 #relevant data about the predictions
 # We can see that 1 is the best value for C, without any trade offs regarding
 #generalization
+
+
 c_values = [0.0001, 0.001, 1.0, 10.0, 100.0]
 linear_results = []
 
-for x in c_values: 
+for x in c_values:
+      print("Print x: ", x)
       svc = SVC(kernel = 'linear', C = x)
       svc.fit(X_train,y_train) 
       linear_results.append(svc.score(X_test,y_test)) 
@@ -171,17 +162,22 @@ for x in c_values:
       report(y_test, y_pred)
       conf_matrix (y_test, y_pred, "linear ", "", str(x))
       normalized_conf_matrix(y_test, y_pred, "linear", "", str(x))
-      print("Print x: ", x)
-#plt.plot(c_values, linear_results) 
-#plt.show()       
-      
-      
-#Changing the decision function to 'ovr'
-svm = SVC(kernel = 'linear', C = 1, decision_function_shape = 'ovr').fit(X_train, y_train)
-y_pred = svc.predict(X_test)
-report(y_test, y_pred)
-conf_matrix (y_test, y_pred, "linear ovr", "", "1")
-normalized_conf_matrix(y_test, y_pred, "linear ovr", "", "1")
+
+#Plot the results achieved with the range of C values   
+#Almost/no difference with the accuracy
+plt.plot(c_values, linear_results, 'r') 
+plt.suptitle('SVM')
+plt.xlabel('C Values')
+plt.ylabel('Mean acuracy')
+plt.xscale('log')
+plt.show()    
+   
+
+
+#linear_results [0.8866, 0.8879, 0.8885, 0.8889, 0.8875]
+results = {'C values': c_values, 'Mean Accuracy': linear_results}
+results = pd.DataFrame(results, columns = ['C values', 'Mean Accuracy'])
+results.round(4)
 
      
 
@@ -198,6 +194,27 @@ for x in gamma_values:
       report(y_test, y_pred)
       conf_matrix (y_test, y_pred, "rbf", str(x), "1")
       normalized_conf_matrix(y_test, y_pred, "rbf", str(x), "1")
+
+#rbf_results [0.8787, 0.8692, 0.8508, 0.8502, 0.8502]
+#plot the mean accuracy results for the gamma hyperparameters test
+#As smaller gamma is as better accuracy we achieve
+plt.plot(gamma_values, rbf_results, 'b') 
+plt.suptitle('SVM')
+plt.xlabel('gamma Values')
+plt.ylabel('Mean acuracy')
+plt.xscale('log')
+plt.show()
+
+
+
+#Compare results with C and gamma hyperparameters adjustments
+plt.plot(c_values, linear_results, 'r', label='C') 
+plt.plot(gamma_values, rbf_results, 'b', label='gamma') 
+plt.suptitle('SVM')
+plt.ylabel('Mean acuracy')
+plt.xscale('log')
+plt.legend()
+plt.show()
 
 
 
@@ -216,15 +233,25 @@ X = df[result].values
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42) 
 
 
-#After dropping few columns of the dataset we try the refit and predict again
-# but the results are quite same as with having 'OperatingSystems', 'Browser', 'TrafficType'
-#in the dataset
-svm = SVC(kernel='linear', C=1).fit(X_train, y_train)
+#Changing the decision function to 'ovo', using linear kernel
+svm = SVC(kernel = 'linear', decision_function_shape = 'ovo').fit(X_train, y_train)
 y_pred = svm.predict(X_test)
-conf_matrix(y_test, y_pred, "linear ", "", "1")
-normalized_conf_matrix(y_test, y_pred, "linear ", "", "1")
 report(y_test, y_pred)
+conf_matrix (y_test, y_pred, "linear ovo", "", "1")
+normalized_conf_matrix(y_test, y_pred, "linear ovo", "", "1")
+'''
+report(y_test, y_pred)
+              precision    recall  f1-score   support
 
+           0       0.90      0.98      0.94      2593
+           1       0.74      0.39      0.51       457
+
+    accuracy                           0.89      3050
+   macro avg       0.82      0.68      0.72      3050
+weighted avg       0.88      0.89      0.87      3050
+
+Precision and Recall : 0.38
+'''
 
 #-----------------------------------------------------------------------------
 
@@ -264,51 +291,8 @@ df.boxplot(['Administrative', 'Administrative_Duration', 'Informational', 'Infor
        'ProductRelated', 'BounceRates', 'ExitRates', 'PageValues'], notch = True);
 
 
-    
-    
-'''======================================================'''
-
-"""We continue with Support Verctor Regression
-   still having columns  'OperatingSystems', 'Browser' and 'TrafficType'
-   dropped from the dataset. """
-
-
+#----------------------------------------------------------------
 from sklearn.preprocessing import StandardScaler
-from  sklearn.svm import SVR
-from sklearn.metrics import mean_squared_error
-
-
-
-#Regression without andy standardization
-
-
-#c_values = [0.01, 0.1, 1.0, 10, 100]
-c_values = [0.01, 0.1, 1.0, 10, 100]
-
-
-def SVRfit_pred(fitX, fitY, testSet, c_values, description):
-    msqe = []    
-    for x in ['rbf', 'linear', 'poly', 'sigmoid']:
-        print(x)
-        for y in c_values:
-            print(y)
-            svr = SVR(kernel= x, C = y, gamma='auto')
-            #svr = SVR(kernel= x, C = 0.1 )
-            #svr = SVR(kernel= x, C = 100 )
-            svr.fit(fitX, fitY)
-            y_pred = svr.predict(testSet)
-            #calculate the squared mean error of the model prediction
-            msqe.append([x, y, np.sqrt(mean_squared_error(y_test, y_pred))])
-    
-    results = pd.DataFrame(msqe, columns =["Kernel","C_value", "MSQE"])
-    print (description + "  : \n", results)
-    
-
-        
-SVRfit_pred(X_train, y_train, X_test, c_values, "SVR results without any standardization")
-    
-'''============================================================'''
-
 
 #Standardizes the data making it easier to compare 
 # and reduces the deviation 
@@ -321,9 +305,124 @@ stand_X_test = stdScaler.transform(X_test)
 
 #the standardized data look
 std_X_train = pd.DataFrame(stand_X_train)
-pd.DataFrame(stand_X_train).head(20)
+pd.DataFrame(stand_X_train).head(15)
+    
+pd.DataFrame(X_train).head(5)
+df.head(5)
 
 
+
+
+from sklearn.model_selection import GridSearchCV
+
+c_gamma_val = [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
+#Set parameters for the grid search
+parameters = {
+              "C": c_gamma_val, 
+              "gamma":c_gamma_val,
+              "decision_function_shape":['ovo', 'ovr']
+              }
+
+svm_gridSearch = GridSearchCV(SVC(), parameters, cv=5, scoring="accuracy")
+svm_gridSearch.fit(stand_X_train, y_train)
+topParam = svm_gridSearch.best_params_
+print(f"Best paramters: {topParam})")
+#Best paramters: {'C': 100.0, 'decision_function_shape': 'ovo', 'gamma': 0.01}
+svm =  SVC(**topParam)
+svm.fit(stand_X_train, y_train)
+y_pred = svm.predict(X_test)
+report(y_test, y_pred)
+'''
+    precision    recall  f1-score   support
+
+           0       0.85      1.00      0.92      2593
+           1       0.00      0.00      0.00       457
+
+    accuracy                           0.85      3050
+   macro avg       0.43      0.50      0.46      3050
+weighted avg       0.72      0.85      0.78      3050
+
+Precision and Recall : 0.15
+'''
+
+#After dropping few columns of the dataset we try the refit and predict again
+# but the results are quite same as with having 'OperatingSystems', 'Browser', 'TrafficType'
+#in the dataset
+svm = SVC(kernel='linear', C=1).fit(X_train, y_train)
+y_pred = svm.predict(X_test)
+conf_matrix(y_test, y_pred, "linear ", "", "1")
+normalized_conf_matrix(y_test, y_pred, "linear ", "", "1")
+report(y_test, y_pred)
+
+'''
+              precision    recall  f1-score   support
+
+           0       0.90      0.98      0.94      2593
+           1       0.74      0.39      0.51       457
+
+    accuracy                           0.89      3050
+   macro avg       0.82      0.68      0.72      3050
+weighted avg       0.88      0.89      0.87      3050
+
+Precision and Recall : 0.38
+'''
+
+    
+    
+'''======================================================
+
+   We continue with Support Verctor Regression
+   still having columns  'OperatingSystems', 'Browser' and 'TrafficType'
+   dropped from the dataset. '''
+
+
+from  sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error
+
+
+
+#Regression without andy standardization
+
+
+c_values = [0.01, 0.1, 1.0, 10, 100]
+
+
+def SVRfit_pred(fitX, fitY, testSet, c_values, description):
+    msqe = []
+    rbf = []
+    linear = []
+    poly = []    
+    for x in ['rbf', 'linear', 'poly', 'sigmoid']:
+        print(x)
+        for y in c_values:
+            print(y)
+            svr = SVR(kernel= x, C = y, gamma='auto')
+            svr.fit(fitX, fitY)
+            y_pred = svr.predict(testSet)
+            rmsqe = np.sqrt(mean_squared_error(y_test, y_pred))
+            #calculate the root mean squared error of the model prediction
+            msqe.append([x, y, rmsqe])
+            
+            if x == 'rbf':
+                rbf.append(rmsqe)
+            elif x == 'linear':
+                linear.append(rmsqe)
+            elif x == 'poly':
+                poly.append(rmsqe)
+    
+    results = pd.DataFrame(msqe, columns =["Kernel","C_value", "RMSQE"])
+    print (description + "  : \n", results)
+    
+    plt.plot(c_values, rbf, 'r', label='RBF') 
+    plt.plot(c_values, linear, 'b', label='Linear')
+    plt.plot(c_values, poly, 'g', label='Poly') 
+    plt.suptitle(description)
+    plt.xlabel('C')
+    plt.ylabel('Root Mean Squared Error')
+    plt.xscale('log')
+    plt.legend()
+    plt.show()
+    
 
 #show the datatypes of all columns
 df.dtypes
@@ -332,16 +431,7 @@ SVRfit_pred(stand_X_train, y_train, stand_X_test, c_values, "SVR results X_train
 
 '''======================================================'''
 
-'''' 
-print (y_train.reshape(-1, 1))
-stdYScaler = StandardScaler().fit (y_train.reshape(-1,1), y_test.reshape(-1, 1))
-stand_y_train = stdYScaler.transform(y_train.reshape(-1, 1))
-stand_y_test = stdYScaler.transform(y_test.reshape(-1, 1))
-
-SVRfit_pred(stand_X_train, y_train, stand_X_test, c_values, 
-'''
-
-
+#Lets train our model with all the data standardized
 standardized_df = df
 stdScaler = StandardScaler().fit(standardized_df)
 standardized_df = stdScaler.transform(standardized_df)
@@ -362,7 +452,7 @@ standardized_df.head(5)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42) 
 
 
-SVRfit_pred(X_train, y_train, X_test, c_values, "All data standardized")
+SVRfit_pred(X_train, y_train, X_test, c_values, "SVR All data standardized")
 
 
 
@@ -418,69 +508,14 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random
 
 
 #train and test using the preset values for C in c_values and all the kernels
-SVRfit_pred(stand_X_train, y_train, stand_X_test, c_values, 
+SVRfit_pred(X_train, y_train, X_test, c_values, 
             "SVR results only noncategorical data standardized")
-        
 
-
-
-"""
-y not standardized
-
-SVR results C = 0.1: 
-     Kernel  MSQE
-0      rbf  0.29
-1   linear  0.32
-2  sigmoid  9.04
-3     poly  0.34
-========================
-SVR results default: 
-     Kernel         MSQE
-0      rbf     0.347740
-1   linear     0.320182
-2  sigmoid  9207.581178
-3     poly     0.365643
-=======================
-SVR results C = 100: 
-     Kernel  MSQE
-0      rbf  0.29
-1   linear  0.32
-2  sigmoid  9.04
-3     poly  0.34
-===================
-
-All data standardized: 
-
-
-SVR results default:
-     Kernel   MSQE
-0      rbf   0.80
-1   linear   0.90
-2  sigmoid  91.45
-3     poly   0.94
-
-====================
-SVR results only noncategorical data standardized : 
-     Kernel   MSQE
-0      rbf   0.37
-1   linear   0.37
-2  sigmoid  95.17
-3     poly   0.38
-
-====================
-SVR results without any standardization  : 
-     Kernel   MSQE
-0      rbf   0.29
-1   linear   0.32
-2  sigmoid  90.86
-3     poly   0.33
-
-"""
 
 """
 about 3hr
 SVR results X_train and X_test standardized  : 
-      Kernel  C_value     MSQE
+      Kernel  C_value    RMSQE
 0       rbf     0.01     0.30
 1       rbf     0.10     0.29
 2       rbf     1.00     0.29
@@ -504,7 +539,7 @@ SVR results X_train and X_test standardized  :
 
 
 All data standardized  : 
-      Kernel  C_value     MSQE
+      Kernel  C_value    RMSQE
 0       rbf     0.01     0.92
 1       rbf     0.10     0.82
 2       rbf     1.00     0.80
@@ -528,27 +563,28 @@ All data standardized  :
 
 
 SVR results only noncategorical data standardized  : 
-      Kernel  C_value     MSQE
-0       rbf     0.01     0.37
-1       rbf     0.10     0.37
-2       rbf     1.00     0.37
-3       rbf    10.00     0.38
-4       rbf   100.00     0.42
-5    linear     0.01     0.37
-6    linear     0.10     0.37
-7    linear     1.00     0.37
-8    linear    10.00     0.37
-9    linear   100.00     0.37
-10     poly     0.01     0.37
-11     poly     0.10     0.37
-12     poly     1.00     0.38
-13     poly    10.00     0.40
-14     poly   100.00     0.41
-15  sigmoid     0.01     0.88
-16  sigmoid     0.10     9.52
-17  sigmoid     1.00    95.17
-18  sigmoid    10.00   952.13
-19  sigmoid   100.00  9521.39
-
+      Kernel  C_value     RMSQE
+0       rbf     0.01      0.37
+1       rbf     0.10      0.37
+2       rbf     1.00      0.37
+3       rbf    10.00      0.39
+4       rbf   100.00      0.43
+5    linear     0.01      0.37
+6    linear     0.10      0.37
+7    linear     1.00      0.37
+8    linear    10.00      0.37
+9    linear   100.00      0.38
+10     poly     0.01      0.37
+11     poly     0.10      0.37
+12     poly     1.00      0.38
+13     poly    10.00      0.40
+14     poly   100.00      0.44
+15  sigmoid     0.01      3.12
+16  sigmoid     0.10     31.33
+17  sigmoid     1.00    313.35
+18  sigmoid    10.00   3133.80
+19  sigmoid   100.00  31337.80
 
 """
+
+
