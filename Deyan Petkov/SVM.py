@@ -254,6 +254,15 @@ weighted avg       0.88      0.89      0.87      3050
 Precision and Recall : 0.38
 '''
 
+#Estimate the accuracy using cross validation
+from sklearn.model_selection import cross_val_score
+score = cross_val_score(svm, X_train, y_train, cv=5)
+print(score)
+#[0.88032787 0.88306011 0.88688525 0.89010388 0.88846364]
+print("Accuracy of Model with Cross Validation is:",score.mean() * 100)
+#Mean 88.57
+
+
 #-----------------------------------------------------------------------------
 
 #Shows how the values in the data are spread out and skewness.
@@ -346,11 +355,13 @@ weighted avg       0.72      0.85      0.78      3050
 Precision and Recall : 0.15
 '''
 
-#After dropping few columns of the dataset we try the refit and predict again
-# but the results are quite same as with having 'OperatingSystems', 'Browser', 'TrafficType'
-#in the dataset
-svm = SVC(kernel='linear', C=1).fit(X_train, y_train)
-y_pred = svm.predict(X_test)
+#After dropping few columns of the dataset and standardizing the training data 
+#we try to refit and predict again
+# but the results are quite the same as with having 'OperatingSystems', 'Browser', 'TrafficType'
+#in the dataset.
+#The only difference is that the model fits the data SIGNIFICANTLY quicker
+svm = SVC(kernel='linear', C=1).fit(stand_X_train, y_train)
+y_pred = svm.predict(stand_X_test)
 conf_matrix(y_test, y_pred, "linear ", "", "1")
 normalized_conf_matrix(y_test, y_pred, "linear ", "", "1")
 report(y_test, y_pred)
@@ -358,15 +369,20 @@ report(y_test, y_pred)
 '''
               precision    recall  f1-score   support
 
-           0       0.90      0.98      0.94      2593
-           1       0.74      0.39      0.51       457
+           0       0.90      0.97      0.94      2593
+           1       0.71      0.40      0.52       457
 
     accuracy                           0.89      3050
-   macro avg       0.82      0.68      0.72      3050
-weighted avg       0.88      0.89      0.87      3050
+   macro avg       0.81      0.69      0.73      3050
+weighted avg       0.87      0.89      0.87      3050
 
 Precision and Recall : 0.38
 '''
+score = cross_val_score(svm, stand_X_train, y_train, cv=5)
+print(score)
+#[0.8863388  0.87814208 0.88688525 0.88846364 0.8868234 ]
+print("Cross Validated accuracy of Model after standardization is:",score.mean() * 100)
+# 88.533
 
     
     

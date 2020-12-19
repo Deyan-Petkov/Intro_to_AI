@@ -115,7 +115,7 @@ from sklearn.model_selection import GridSearchCV
 
 #confusion matrix
 def conf_matrix(testData, predData, description):
-    cm = confusion_matrix(y_test, y_pred)
+    cm = confusion_matrix(testData, predData)
     print(cm)
     fn, ax = plt.subplots(figsize=(5,5))
     sns.heatmap(cm, annot=True, linewidth=1, linecolor='black', fmt='g', ax=ax, cmap="BuPu")
@@ -127,7 +127,7 @@ def conf_matrix(testData, predData, description):
 
 #normalized 
 def normalized_conf_matrix(testData, predData, description):
-    cm = confusion_matrix(y_test, y_pred)
+    cm = confusion_matrix(testData, predData)
     fn, ax = plt.subplots(figsize=(5,5))
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     print(cm_normalized)
@@ -149,18 +149,25 @@ DefDTClassifier = DecisionTreeClassifier(random_state=10)
 #=====================Make predictions using Default Classifier Settings
 DefDTClassifier.fit(X_train, y_train)
 y_pred = DefDTClassifier.predict(X_test)
+
 pd.DataFrame(classification_report(y_test, y_pred, output_dict=True))
+
+conf_matrix(y_test, y_pred, 'default settings')
+normalized_conf_matrix(y_test, y_pred, 'default settings')
 
 '''              0       1  accuracy  macro avg  weighted avg
 precision     0.93    0.54      0.86       0.74          0.87
 recall        0.91    0.59      0.86       0.75          0.86
 f1-score      0.92    0.57      0.86       0.74          0.87
 support    2593.00  457.00      0.86    3050.00       3050.00
+cm
 [[2365  228]
  [ 186  271]]
+normalized
+[[0.91207096 0.08792904]
+ [0.40700219 0.59299781]]
 '''
-conf_matrix(y_test, y_pred, 'default settings')
-normalized_conf_matrix(y_test, y_pred, 'default settings')
+
 #===================Optimized Classifier
 
 #Set of hyperparameters to feed the Gridsearch function
@@ -171,13 +178,13 @@ parameters = {'criterion':("gini", "entropy"),
 
 #Loops through the set of parameters fitting the estimator with each of them
 #in order to find the best fit. The decision of best hyperparameters is made upon best accuracy results
-dt_gridSearch = GridSearchCV(DefDTClassifier, parameters, scoring="accuracy")
+dt_gridSearch = GridSearchCV(DefDTClassifier, parameters, scoring="accuracy", cv=5)
 #Fit the training data to the GridSearchCV
 dt_gridSearch.fit(X_train, y_train)
 topParam = dt_gridSearch.best_params_#save the parameters which gave best accuracy
 print(f"Best paramters: {topParam})")
-#Best paramters: {'criterion': 'entropy', 'max_depth': 8, 'min_samples_leaf': 32, 'min_samples_split': 2}
-
+#Best paramters: {'criterion': 'gini', 'max_depth': 8, 'min_samples_leaf': 38, 'min_samples_split': 2}
+    
 #Set the classifeir to use our prefered parameters
 dtClassifier = DecisionTreeClassifier(**topParam)
 dtClassifier.fit(X_train, y_train)#fit the classifier to the training data
@@ -187,22 +194,22 @@ x_train_pred = dtClassifier.predict(X_train)
 #accuracy, precisison on the TRAINING DATA
 pd.DataFrame(classification_report(y_train, x_train_pred, output_dict=True))
 
-conf_matrix(y_train, x_train_pred, 'Performance over the training data\ncriterion: entropy, max_depth: 8,\nmin_samples_leaf: 32, min_samples_split: 2')
-normalized_conf_matrix(y_train, x_train_pred, 'Performance over the training data\ncriterion: entropy, max_depth: 8,\nmin_samples_leaf: 32, min_samples_split: 2')
+conf_matrix(y_train, x_train_pred, 'Performance over the training data\ncriterion: gini, max_depth: 8, \nmin_samples_leaf: 38, min_samples_split: 2')
+normalized_conf_matrix(y_train, x_train_pred, 'Performance over the training data\ncriterion: gini, max_depth: 8, \nmin_samples_leaf: 38, min_samples_split: 2')
 
 """              0        1  accuracy  macro avg  weighted avg
-precision     0.93     0.80      0.91       0.86          0.91
-recall        0.97     0.59      0.91       0.78          0.91
-f1-score      0.95     0.68      0.91       0.81          0.91
+precision     0.93     0.79      0.91       0.86          0.91
+recall        0.97     0.60      0.91       0.79          0.91
+f1-score      0.95     0.68      0.91       0.82          0.91
 support    7713.00  1435.00      0.91    9148.00       9148.00
 
 confusion matrix 
-[[7494  219]
- [ 584  851]]
+[[7482  231]
+ [ 570  865]]
 
 normalized
-[[0.91207096 0.08792904]
- [0.40700219 0.59299781]]
+[[0.97005056 0.02994944]
+ [0.39721254 0.60278746]]
 """
 
 #make predictions upon the testing set of data
@@ -210,23 +217,23 @@ y_pred = dtClassifier.predict(X_test)
 #accuracy, precision on the Testing data
 pd.DataFrame(classification_report(y_test, y_pred, output_dict=True))
 
-conf_matrix(y_test, y_pred, 'Performance over the testing data\ncriterion: entropy, max_depth: 8,\nmin_samples_leaf: 32, min_samples_split: 2')
-normalized_conf_matrix(y_test, y_pred, 'Performance over the testing data\ncriterion: entropy, max_depth: 8,\nmin_samples_leaf: 32, min_samples_split: 2')
+conf_matrix(y_test, y_pred, 'Performance over the testing data\ncriterion: gini, max_depth: 8, \nmin_samples_leaf: 38, min_samples_split: 2')
+normalized_conf_matrix(y_test, y_pred, 'Performance over the testing data\ncriterion: gini, max_depth: 8, \nmin_samples_leaf: 38, min_samples_split: 2')
 
 """              0       1  accuracy  macro avg  weighted avg
-precision     0.92    0.71       0.9       0.82          0.89
-recall        0.96    0.54       0.9       0.75          0.90
-f1-score      0.94    0.62       0.9       0.78          0.89
+precision     0.93    0.71       0.9       0.82          0.89
+recall        0.96    0.57       0.9       0.76          0.90
+f1-score      0.94    0.63       0.9       0.79          0.90
 support    2593.00  457.00       0.9    3050.00       3050.00
 
 
 confusion_matrix
-[[2494   99]
- [ 209  248]]
+[[2485  108]
+ [ 198  259]]
 
 confuison_matrix_normalized
-[[0.96182029 0.03817971]
- [0.45733042 0.54266958]]
+[[0.9583494  0.0416506 ]
+ [0.43326039 0.56673961]]
 """
 
 
@@ -288,94 +295,60 @@ def Scoring(y_prd):
         
 
 #fit, train, score
-def fitTrainScore (dtRegressor, description):
+def fitTrainScore (dtRegressor):
     dtRegressor.fit(X_train, y_train)
     reg_y_pred = dtRegressor.predict(X_test)
     Scoring(reg_y_pred)
-    conf_matrix(y_test, reg_y_pred, description)
-    normalized_conf_matrix(y_test, reg_y_pred, description)
         
         
 
 #criterion = mse by default
 dtRegressor =  DecisionTreeRegressor(random_state=10)
-fitTrainScore(dtRegressor, 'Regression\ndefault settings')
+fitTrainScore(dtRegressor)
 '''
 Test Variance score: -0.10
 Mean Absolute Error:0.14
 Mean Squared Error:0.14
 Root Mean Squared Error:0.37
-
-[[2494   99]
- [ 209  248]]
-
-normalized cm
-[[0.96182029 0.03817971]
- [0.45733042 0.54266958]]
 '''
 
 dtRegressor =  DecisionTreeRegressor(random_state=10, criterion="mae")
-fitTrainScore(dtRegressor, 'Regression\ncriterion = Mean Absolute Error')
+fitTrainScore(dtRegressor)
 '''
 Test Variance score: -0.20
 Mean Absolute Error:0.15
 Mean Squared Error:0.15
 Root Mean Squared Error:0.39
-
-
-[[2494   99]
- [ 209  248]]
-
-normalized cm
-[[0.96182029 0.03817971]
- [0.45733042 0.54266958]]
 '''
 
 dtRegressor =  DecisionTreeRegressor(random_state=10, criterion="friedman_mse")
-fitTrainScore(dtRegressor, 'Regression\ncriterion = Frideman_mse')
+fitTrainScore(dtRegressor)
 '''
 Test Variance score: -0.08
 Mean Absolute Error:0.14
 Mean Squared Error:0.14
 Root Mean Squared Error:0.37
-
-[[2494   99]
- [ 209  248]]
-
-normalized cm
-[[0.96182029 0.03817971]
- [0.45733042 0.54266958]]
-
 '''
 
 
-parameters = {#"criterion":("mse", "friedman_mse", "mae"),
-              "min_samples_split":np.arange(2,20,2), 
+parameters = {"min_samples_split":np.arange(2,20,2), 
               "min_samples_leaf":list(range(1, 50)),
               "max_depth":(list(range(1, 10))) }
 
 #Lets gridSearch hyperparameters for friedman mean square error criterion as it performed slightly better
-dt_gridSearch = GridSearchCV(dtRegressor, parameters)
+dt_gridSearch = GridSearchCV(dtRegressor, parameters, cv=5)
 dt_gridSearch.fit(X_train, y_train)
 topParam = dt_gridSearch.best_params_
 print(f"Best paramters: {topParam})")
-#Best paramters: {'max_depth': 5, 'min_samples_leaf': 35, 'min_samples_split': 2}
+#Best paramters: {'max_depth': 6, 'min_samples_leaf': 39, 'min_samples_split': 2}
 dtRegressor =  DecisionTreeRegressor(**topParam)
 
-fitTrainScore(dtRegressor, 'Regression\nPerformance over the testing data\nmax_depth: 5, min_samples_leaf: 35, min_samples_split: 2')
+fitTrainScore(dtRegressor)
 '''
-Test Variance score: 0.43
+Test Variance score: 0.42
 Mean Absolute Error:0.14
 Mean Squared Error:0.07
 Root Mean Squared Error:0.27
-
-[[2494   99]
- [ 209  248]]
-
-normalized
-[[0.96182029 0.03817971]
- [0.45733042 0.54266958]]
-
 '''
 
 
