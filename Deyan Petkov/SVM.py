@@ -31,20 +31,21 @@ set_option('precision',3)
 df.describe()
 df.describe(include = 'all')
 
+df.shape
+#(12330, 18)
 
 #add -1 as a missing value type
 df = pd.read_csv(ds, na_values=['NaN','-1'])
 
 #How many sessions ended with transaction or without 
 df['Revenue'].value_counts()
+#False    10422
+#True      1908
 
 #replace True/Flase values with 1/0
 df.Weekend = df.Weekend.replace({True: 1, False: 0})
 df.Revenue = df.Revenue.replace({True: 1, False: 0})
 
-
-df.shape
-#(12330, 18)
 
 #show null values count
 print("count missing/NA values")
@@ -386,7 +387,7 @@ from sklearn.metrics import mean_squared_error
 
 c_values = [0.01, 0.1, 1.0, 10, 100]
 
-
+#Fit and test different kernels with different values for C and plot the results
 def SVRfit_pred(fitX, fitY, testSet, c_values, description):
     msqe = []
     rbf = []
@@ -513,7 +514,6 @@ SVRfit_pred(X_train, y_train, X_test, c_values,
 
 
 """
-about 3hr
 SVR results X_train and X_test standardized  : 
       Kernel  C_value    RMSQE
 0       rbf     0.01     0.30

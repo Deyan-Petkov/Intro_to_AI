@@ -23,12 +23,16 @@ set_option('precision',2)
 df.describe()
 df.describe(include = 'all')
 
+df.shape
+#(12330, 18)
 
 #add -1 as a missing value type
 df = pd.read_csv(ds, na_values=['NaN','-1'])
 
 #How many sessions ended with transaction or without 
 df['Revenue'].value_counts()
+#False    10422
+#True      1908
 
 #replace True/Flase values with 1/0
 df.Weekend = df.Weekend.replace({True: 1, False: 0})
@@ -40,7 +44,8 @@ df.isnull().sum()
 
 #Remove the null values and update the dataset according to the changes
 df.dropna(inplace=True)
-
+df.shape
+#(12283, 18)
 
 #convert categorical data to numerical
 from sklearn.preprocessing import LabelEncoder
@@ -57,6 +62,13 @@ leMonths_mapping = dict(zip(leMonths.classes_ ,
 
 print(leMonths_mapping)
 
+
+df['VisitorType'].value_counts()
+'''
+Returning_Visitor    10504
+New_Visitor           1694
+Other                   85
+'''
 #remove Other from VisitorType column as it is insignificant number of entries(85)
 #and we mainly have two types of visitors - new and returning
 df = df[df.VisitorType != 'Other']
