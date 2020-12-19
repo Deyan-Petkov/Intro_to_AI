@@ -1,76 +1,116 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-#import numpy as pd
-from sklearn import datasets
+import os
 
-f= pd.read_csv(r'C:\Users\mahmo\Desktop\online_shoppers_intention.csv')
+path = (r"C:\Users\mahmo\Desktop")
 
 
+ds = os.path.join(path,"online_shoppers_intention.csv")
+df = pd.read_csv(ds)
+
+# Columns and their respective data types
+print(df.dtypes)  
+
+#replace True/Flase values with 1 and 0
+df.Weekend = df.Weekend.replace({True: 1, False: 0})
+df.Revenue = df.Revenue.replace({True: 1, False: 0})
 
 
+#show statistical summary
+from pandas import set_option
+set_option('display.width',100)
+set_option('precision',2)
+df.describe()
 
-sizes = f['Browser'].value_counts(sort=1)
+
+sizes = df['Browser'].value_counts(sort=1)
 print(sizes)
 
 'Counts the values and storts them'
 
 
-y= f['Browser'].values
+y= df['Browser'].values
+
+#Remove the null values and update the dataset according to the changes
+df.dropna(inplace=True)
+df.isnull().sum()
+print("shape after dropping the missing values\n", df.shape)
+
+#df.info()
+
+#convert categorical data to numerical
+from sklearn.preprocessing import LabelEncoder
+leMonths = LabelEncoder()
+
+#convert/fit the data
+"""It is important fit_transform to be run only once, otherwise 
+the original values will be lost"""
+df['Month'] = leMonths.fit_transform(df['Month'])
+
+#map and show the new and old values (only for better visual understanding)
+leMonths_mapping = dict(zip(leMonths.classes_ ,
+                            leMonths.transform(leMonths.classes_)))
+
+print(leMonths_mapping)
+
+#remove Other from VisitorType column as it is insignificant number of entries(85)
+#and we mainly have two types of visitors - new and returning
+df = df[df.VisitorType != 'Other']
+#create  LabelEncoder() instance for VisitorType
+leVisitor = LabelEncoder()
+#convert VisitorType from categorical to numerical
+df['VisitorType'] = leVisitor.fit_transform(df['VisitorType'])
+
+leVisitor_mapping = dict(zip(leVisitor.classes_ ,
+                                 leVisitor.transform(leVisitor.classes_)))
+
+#print(df)
 
 
-f.head(5)
-f.describe()
+from sklearn.model_selection import train_test_split
 
-sns.scatterplot(x='PageValues',y='BounceRates', data=f, hue='Revenue', palette='prism')
-plt.show()
-
-f.drop(['Administrative'],axis=1, inplace = True)
-
-
-#replaces true false values with 1 and 2
-f.Weekend = f.Weekend.replace({True: 1, False: 0})
-f.Revenue = f.Revenue.replace({True: 1, False: 0})
-print(f)
+#split the target(y) and the rest of the data(X)
+result = []
+for x in df.columns:
+     if x != 'Revenue':
+        result.append(x)
+        
+X = df[result].values
+y = df['Revenue'].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42) 
 
 
-X, Y = datasets.make_classification(n_samples=100000, n_features=20,
-                                    n_informative=2, n_redundant=2)
-
-
-train_samples = 100
-
-X_train = X[:train_samples]
-X_test = X[train_samples:]
-Y_train = Y[:train_samples]
-Y_test = Y[train_samples:]
+"""Now we will define and fit our model using sckit-learn pipline."""
 
 
 
-
-
-
-
-Y=f['Browser'].values
-Y=Y.astype('int')
-
-
-
-
-X=f.drop(labels=['Browser'])
-
-from sklearn.model_selection import train_test_split 
-X_train , X_test, Y_train , Y_test = train_test_split(X,Y, test_size=0.4, random_state = 20)
-
-
+"Random Forest Classification"
 from sklearn.ensemble import RandomForestClassifier
+rclf = RandomForestClassifier(n_estimators=100,max_depth=10)
 
-model=RandomForestClassifier(n_estimators=10, random_state=30)
+rclf.fit(X_train,y_train)
 
-model.fit(X_train,Y_train)
+"""Now we are going to test the model"""
 
-line1, =plt.plot(X_train,Y_train)
-line2, =plt.plot(X_train,Y_train)
+from sklearn.metrics import accuracy_score,recall_score,confusion_matrix
+y_pred = rclf.predict(X_test)
+print('The accuracy is ',accuracy_score(y_test,y_pred))
+print('The recall score is ',recall_score(y_test,y_pred))
 
 
-plt.show()
+
+
+"Random Forest Regression"
+from sklearn.ensemble import RandomForestRegressor
+rcmf = RandomForestRegressor(n_estimators=100,max_depth=10)
+rcmf.fit(X_train,y_train)
+
+x_pred = rclf.predict(X_test)
+print('The accuracy is ',accuracy_score(y_test,x_pred))
+print('The recall score is ',recall_score(y_test,x_pred))
+
+
+
+"""Our model succed to predit on test data with 90% accuracy."""
+
+
+
