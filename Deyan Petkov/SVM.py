@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, precision_score
 from sklearn.metrics import classification_report
 
 path = "../"
@@ -153,17 +153,25 @@ def report (y_test, y_pred):
 
 c_values = [0.0001, 0.001, 1.0, 10.0, 100.0]
 linear_results = []
+linear_precision = []
 
 for x in c_values:
       print("Print x: ", x)
       svc = SVC(kernel = 'linear', C = x)
       svc.fit(X_train,y_train) 
-      linear_results.append(svc.score(X_test,y_test)) 
       y_pred = svc.predict(X_test)
+      linear_results.append(accuracy_score(y_test, y_pred))
+      linear_precision.append(precision_score(y_test, y_pred)) 
       report(y_test, y_pred)
       conf_matrix (y_test, y_pred, "linear ", "", str(x))
       normalized_conf_matrix(y_test, y_pred, "linear", "", str(x))
 
+
+print(linear_precision)
+#[0.7159, 0.7220, 0.7577, 0.7565, 0.7544]
+print(linear_results)
+#linear_results [0.8866, 0.8879, 0.8885, 0.8889, 0.8875]    
+  
 #Plot the results achieved with the range of C values   
 #Almost/no difference with the accuracy
 plt.plot(c_values, linear_results, 'r') 
@@ -174,8 +182,14 @@ plt.xscale('log')
 plt.show()    
    
 
+plt.plot(c_values, linear_precision, 'r') 
+plt.suptitle('SVM')
+plt.xlabel('C Values')
+plt.ylabel('Precision')
+plt.xscale('log')
+plt.show() 
 
-#linear_results [0.8866, 0.8879, 0.8885, 0.8889, 0.8875]
+
 results = {'C values': c_values, 'Mean Accuracy': linear_results}
 results = pd.DataFrame(results, columns = ['C values', 'Mean Accuracy'])
 results.round(4)
@@ -185,18 +199,24 @@ results.round(4)
 #Radial basis function kernel fittet with different gamma values
 #and displaing relevant data about the predictions
 rbf_results = []
+rbf_precision = []
 gamma_values = [0.0001, 0.001, 0.01, 0.1, 1.0]
 
 for x in gamma_values: 
       svc = SVC(kernel = 'rbf',gamma = x, C = 1)
       svc.fit(X_train,y_train) 
-      rbf_results.append(svc.score(X_test,y_test)) 
       y_pred = svc.predict(X_test)
+      rbf_precision.append(precision_score(y_test, y_pred))
+      rbf_results.append(accuracy_score(y_test, y_pred))
       report(y_test, y_pred)
       conf_matrix (y_test, y_pred, "rbf", str(x), "1")
       normalized_conf_matrix(y_test, y_pred, "rbf", str(x), "1")
 
+print(rbf_precision)
+#rbf_precision #[0.7277, 0.7265, 0.6666, 0.0, 0.0]
+print(rbf_results)
 #rbf_results [0.8787, 0.8692, 0.8508, 0.8502, 0.8502]
+
 #plot the mean accuracy results for the gamma hyperparameters test
 #As smaller gamma is as better accuracy we achieve
 plt.plot(gamma_values, rbf_results, 'b') 
@@ -206,6 +226,13 @@ plt.ylabel('Mean acuracy')
 plt.xscale('log')
 plt.show()
 
+#precision curve
+plt.plot(gamma_values, rbf_precision, 'b') 
+plt.suptitle('SVM')
+plt.xlabel('gamma Values')
+plt.ylabel('Precision')
+plt.xscale('log')
+plt.show()
 
 
 #Compare results with C and gamma hyperparameters adjustments
