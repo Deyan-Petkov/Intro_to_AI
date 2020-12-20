@@ -15,6 +15,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from sklearn.metrics import average_precision_score, precision_score
 from sklearn.metrics import classification_report
+from sklearn.model_selection import validation_curve
 
 path = "../"
 
@@ -240,12 +241,45 @@ plt.plot(c_values, linear_results, 'r', label='C')
 plt.plot(gamma_values, rbf_results, 'b', label='gamma') 
 plt.suptitle('SVM')
 plt.ylabel('Mean acuracy')
+plt.xlabel('Hyperparameter values')
+plt.xscale('log')
+plt.legend()
+plt.show()
+
+#Compare precision with C and gamma hyperparameters adjustments
+plt.plot(c_values, linear_precision, 'r', label='C') 
+plt.plot(gamma_values, rbf_precision, 'b', label='gamma') 
+plt.suptitle('SVC')
+plt.ylabel('Precision')
+plt.xlabel('Hyperparameter values')
 plt.xscale('log')
 plt.legend()
 plt.show()
 
 
+#Store training and testing scores so we can compare them and find the border
+#between over and underfitting 
+train_scores, valid_scores = validation_curve(SVC(kernel="rbf"), X, y, "gamma",
+                                              gamma_values,cv=5, scoring="accuracy")
+#as we use cross validation the results are stored in array of arrays
+#we take the mean of each array 
+tr_sc_mean = np.mean(train_scores, axis=1)
+#[0.90967759 0.95402917 0.98862507 0.99831937 0.99993851]
+vl_sc_mean = np.mean(valid_scores, axis=1)
+#[0.87620645 0.86694304 0.84661413 0.84489265 0.84489265]
 
+#Plot training and testing results together
+plt.plot(gamma_values, tr_sc_mean, 'r', label='training scores') 
+plt.plot(gamma_values, vl_sc_mean, 'b', label='validation scores') 
+plt.suptitle('SVC gamma error curve')
+plt.xlabel('Gamma values')
+plt.ylabel('Score')
+plt.xscale('log')
+plt.legend()
+plt.show()
+
+
+#-----------------------------------------------------------------------------
 
 #Drop columns 'OperatingSystems', 'Browser', 'TrafficType' as
 #we they are not tightly related to our target - Revenue
