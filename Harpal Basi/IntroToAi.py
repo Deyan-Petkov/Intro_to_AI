@@ -86,15 +86,11 @@ leVisitor_mapping = dict(zip(leVisitor.classes_ ,
 print (leVisitor_mapping)
 
 #Dropping OS, Traffic type and Browser from the dataset as it is unuseful.
-#This would help with the
-#df.drop(['OperatingSystems','Browser','TrafficType'], axis = 1)
 
-
+df.drop(['OperatingSystems','Browser','TrafficType'], axis = 1)
 
 #The dataset state after all the manipulations
 df.head(6)
-
-
 
 
 #------------------------------------------
@@ -106,18 +102,18 @@ df.head(6)
 
 #First split the data into Train and test.
 
-# Comparing revenue with the other categories of data.
-y = df['Revenue']
-X = df.drop(['Revenue'],axis=1)
+
+y = df['Revenue']  #Dependant Variable. What we are trying to predict.
+X = df.drop(['Revenue'],axis=1) # Independant Variables
 
 # Split into train and test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 
 
 # Apply the KNN algorithm
 
-kn=KNeighborsClassifier(n_neighbors = 13 , metric = 'euclidean')
+kn=KNeighborsClassifier(n_neighbors = 8 , metric = 'euclidean')
 kn.fit(X_train,y_train)
 predict_y2=kn.predict(X_test) # Prediction
 predict_y2
@@ -126,8 +122,7 @@ predict_y2
 KNN_accuracy=accuracy_score(y_test,predict_y2)*100
 KNN_accuracy
 
-
-#Accurate values
+#Displaying results in a confusion matrix
 confusion_matrix(y_test,predict_y2)
 
 #Classification report
@@ -139,6 +134,8 @@ print(classification_report(y_test,predict_y2))
 error_rate = []
 
 # This for loop calculates the best number of neighbors for the KNN algorithm. 
+# Cited this code from Amey Band
+
 for i in range(1,25):
     
     knn=KNeighborsClassifier(n_neighbors = i)
@@ -152,6 +149,39 @@ plt.plot(range(1,25), error_rate)
 plt.title('Error rate vs k.value')
 plt.xlabel('K')
 plt.ylabel('Error Rate')
+
+
+# Using cross validation model to evaluate the best accuracy for the KNN algorithm.
+# Instead of the train/test split. To see which yields better results. 
+
+from sklearn.model_selection import cross_val_score
+scores = cross_val_score(kn,X , y, cv=9, scoring='accuracy') #Using 9 folds
+print(scores)
+print(scores.mean())
+
+
+
+#Accurate values
+confusion_matrix(y_test,predict_y2)
+
+#Classification report
+print(classification_report(y_test,predict_y2))
+
+
+# Using cross validation to find the best k for our KNN algorithm.
+
+k_range = range(1,25)
+k_scores = []
+for k_number in k_range:
+    kn = KNeighborsClassifier(n_neighbors=k_number)
+    scores = cross_val_score(kn,X,y,cv=9,scoring='accuracy')
+    k_scores.append(scores.mean())
+
+plt.plot(k_range,k_scores)
+plt.xlabel('Value of K for KNN')
+plt.ylabel('Cross-Validated Accuracy')
+
+
 
 # Naive Bayes Algorithm
 
@@ -173,20 +203,18 @@ print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
 
 
 
+# Applying Standardisation and PCA to see if we yield
+# better results.
 
 
-
-
-#Applying Standardisation and/or Mix max scaling through pca
-
-# Using standard scaler to scale the 
+# Using standard scaler 
 from sklearn.preprocessing import StandardScaler
 std_sclr = StandardScaler()
 x_train1 = std_sclr.fit_transform(X_train)
 x_test1 = std_sclr.transform(X_test)
 
 
-# For knn we will use PCA to reduce the dimensionality reduction to see if we get a
+# For knn we will use PCA to reduce the dimensionality to see if we get a
 # better result from our algorithm.
 from sklearn.decomposition import PCA
 pca = PCA(n_components=10)
@@ -195,7 +223,7 @@ x_test_P = pca.transform(x_test1)
 
 # Using the KNN algorithm on the scaled and pca data
 
-KNN_PCA=KNeighborsClassifier(n_neighbors = 15 , metric = 'euclidean')
+KNN_PCA=KNeighborsClassifier(n_neighbors = 8 , metric = 'euclidean')
 KNN_PCA.fit(x_train_P,y_train)
 predict_y1_P=KNN_PCA.predict(x_test_P) # Prediction
 predict_y1_P
@@ -204,6 +232,11 @@ predict_y1_P
 KNN_accuracy=accuracy_score(y_test,predict_y1_P)*100
 KNN_accuracy
 
+#Displaying results in a confusion matrix
+confusion_matrix(y_test,predict_y1_P)
+
+#Classification report
+print(classification_report(y_test,predict_y1_P))
 
 # Finding the best Neighbor for the algorithm. Cited this code from Amey Band
 
@@ -212,19 +245,28 @@ error_rate = []
 for i in range(1,25):
     
     knn=KNeighborsClassifier(n_neighbors = i)
-    knn.fit(X_train,y_train)
-    predict_y2=knn.predict(X_test)#Output Prediction
-    error_rate.append(np.mean(predict_y2 != y_test))
+    knn.fit(x_train_P,y_train)
+    predict_y1_P=knn.predict(x_test_P)#Output Prediction
+    error_rate.append(np.mean(predict_y1_P != y_test))
 
 # Plotting the error rate against the k value to find the best k 
 plt.figure(figsize=(10,6))
 plt.plot(range(1,25), error_rate)
-plt.title('Error rate vs k.value')
+plt.title('Error rate vs k.value PCA')
 plt.xlabel('K')
 plt.ylabel('Error Rate')
 
 # Looking at the plot, we can see that 15 would be the best neighbour as the error rate
 # is stable and starts to flatten. 
+
+# Cross fold validation on PCA and standardised KNN.
+
+
+scores = cross_val_score(KNN_PCA,X , y, cv=9, scoring='accuracy') #Using 8 folds
+print(scores)
+print(scores.mean())
+
+
 
 # Using Naive Bayes on the scaled data with PCA
 from sklearn.naive_bayes import GaussianNB
@@ -239,4 +281,5 @@ confusion_matrix(y_test,predict_y)
 GaussNB_accuracy = accuracy_score(y_test,predict_y2_P)*100
 GaussNB_accuracy
 print(f'\n Accuracy Score with NB is {GaussNB_accuracy}%.')
+print(classification_report(y_test,predict_y))
 
