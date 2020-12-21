@@ -171,7 +171,8 @@ for x in c_values:
 print(linear_precision)
 #[0.7159, 0.7220, 0.7577, 0.7565, 0.7544]
 print(linear_results)
-#linear_results [0.8866, 0.8879, 0.8885, 0.8889, 0.8875]    
+#linear_results [0.8866, 0.8879, 0.8885, 0.8889, 0.8875]  
+
   
 #Plot the results achieved with the range of C values   
 #Almost/no difference with the accuracy
@@ -182,13 +183,23 @@ plt.ylabel('Mean acuracy')
 plt.xscale('log')
 plt.show()    
    
-
-plt.plot(c_values, linear_precision, 'r') 
+#plot the precision results
+plt.plot(c_values, linear_precision, 'b') 
 plt.suptitle('SVM')
 plt.xlabel('C Values')
 plt.ylabel('Precision')
 plt.xscale('log')
 plt.show() 
+
+
+plt.plot(c_values, linear_results, "r", label="Linear Results")
+plt.plot(c_values, linear_precision, "b", label="Linear Precision")
+plt.suptitle("SVC")
+plt.xlabel("C Values")
+plt.xscale("log")
+plt.ylabel("Accuracy/Precision")
+plt.legend()
+plt.show()
 
 
 results = {'C values': c_values, 'Mean Accuracy': linear_results}
@@ -590,6 +601,36 @@ SVRfit_pred(X_train, y_train, X_test, c_values,
             "SVR results only noncategorical data standardized")
 
 
+
+''''==================Try SVR without the highly corelated data'''
+#As we can see from the DataAnalysi.py these columns contain data highly corelated to
+#columns 'Administrative', 'Informational','ProductRelated' and  'BouceRates'
+#Lets remove them and see if the results will improve
+reduceCorrelation = df.drop(columns = ['Administrative_Duration', 'Informational_Duration',
+                                       'ProductRelated_Duration', 'ExitRates'])
+
+reduceCorrelation.columns
+
+result = []
+for x in reduceCorrelation.columns:
+    if x != 'Revenue':
+        result.append(x)
+        
+
+X = reduceCorrelation[result].values
+y = reduceCorrelation['Revenue'].values
+
+stdScaler = StandardScaler().fit(X)
+X = stdScaler.transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42) 
+#the results can be seen on the bottom of the file. There is almost no difference
+#Compared to standardized training/testing data below 
+SVRfit_pred(X_train, y_train, X_test, c_values, 
+            "SVR, correalted data removed, only X standardized")
+
+
+
 """
 SVR results X_train and X_test standardized  : 
       Kernel  C_value    RMSQE
@@ -661,6 +702,30 @@ SVR results only noncategorical data standardized  :
 17  sigmoid     1.00    313.35
 18  sigmoid    10.00   3133.80
 19  sigmoid   100.00  31337.80
+
+
+SVR, correalted data removed, only X standardized  : 
+      Kernel  C_value     RMSQE
+0       rbf     0.01     0.300
+1       rbf     0.10     0.291
+2       rbf     1.00     0.290
+3       rbf    10.00     0.299
+4       rbf   100.00     0.340
+5    linear     0.01     0.320
+6    linear     0.10     0.320
+7    linear     1.00     0.320
+8    linear    10.00     0.320
+9    linear   100.00     0.320
+10     poly     0.01     0.329
+11     poly     0.10     0.331
+12     poly     1.00     0.322
+13     poly    10.00     0.314
+14     poly   100.00     0.320
+15  sigmoid     0.01     0.698
+16  sigmoid     0.10     7.494
+17  sigmoid     1.00    76.218
+18  sigmoid    10.00   719.746
+19  sigmoid   100.00  7200.294
 
 """
 
